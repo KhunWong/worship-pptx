@@ -304,28 +304,28 @@ export default function PptPreview({ data }) {
     switch (slide.type) {
       case "title":
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <h1 className="text-3xl font-bold mb-4">{slide.content.title}</h1>
-            <p className="text-xl">{slide.content.date}</p>
+          <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-4">{slide.content.title}</h1>
+            <p className="text-lg sm:text-xl">{slide.content.date}</p>
           </div>
         )
       case "fixedTitle":
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <h1 className="text-5xl font-bold">{slide.content.title}</h1>
+          <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8">
+            <h1 className="text-3xl sm:text-5xl font-bold">{slide.content.title}</h1>
           </div>
         )
       case "proclamationScripture":
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <h2 className="text-2xl font-semibold mb-6">宣告经文</h2>
-            <div className="space-y-6 w-full">
+          <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8">
+            <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">宣告经文</h2>
+            <div className="space-y-4 sm:space-y-6 w-full">
               {slide.content.sections.map((section, index) => (
-                <div key={index} className="mb-4">
-                  <h3 className="text-xl font-medium mb-2">
+                <div key={index} className="mb-2 sm:mb-4">
+                  <h3 className="text-lg sm:text-xl font-medium mb-1 sm:mb-2">
                     {section.type === "leader" ? "领诵:" : section.type === "congregation" ? "会众:" : "齐诵:"}
                   </h3>
-                  <p className="text-lg italic">{section.text}</p>
+                  <p className="text-base sm:text-lg italic">{section.text}</p>
                 </div>
               ))}
             </div>
@@ -333,43 +333,43 @@ export default function PptPreview({ data }) {
         )
       case "scripture":
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <h2 className="text-2xl font-semibold mb-6">{slide.content.reference}</h2>
-            <p className="text-xl italic">{slide.content.text}</p>
+          <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8">
+            <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-6">{slide.content.reference}</h2>
+            <p className="text-base sm:text-xl italic">{slide.content.text}</p>
           </div>
         )
       case "hymn":
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <h2 className="text-2xl font-semibold mb-2">{slide.content.title}</h2>
-            <p className="text-sm mb-6">
+          <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8">
+            <h2 className="text-xl sm:text-2xl font-semibold mb-1 sm:mb-2">{slide.content.title}</h2>
+            <p className="text-xs sm:text-sm mb-3 sm:mb-6">
               第 {slide.content.number} 节 / 共 {slide.content.total} 节
             </p>
-            <p className="text-xl whitespace-pre-line">{slide.content.verse}</p>
+            <p className="text-base sm:text-xl whitespace-pre-line">{slide.content.verse}</p>
           </div>
         )
       case "faithConfession":
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <h2 className="text-2xl font-semibold mb-2">{slide.content.title}</h2>
-            <p className="text-sm mb-6">
+          <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8">
+            <h2 className="text-xl sm:text-2xl font-semibold mb-1 sm:mb-2">{slide.content.title}</h2>
+            <p className="text-xs sm:text-sm mb-3 sm:mb-6">
               第 {slide.content.page} 页 / 共 {slide.content.totalPages} 页
             </p>
-            <p className="text-xl whitespace-pre-line">{slide.content.text}</p>
+            <p className="text-base sm:text-xl whitespace-pre-line">{slide.content.text}</p>
           </div>
         )
       case "infoSharing":
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <h2 className="text-3xl font-bold mb-6">{slide.content.title}</h2>
-            {slide.content.chapter && <p className="text-2xl">{slide.content.chapter}</p>}
+          <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-6">{slide.content.title}</h2>
+            {slide.content.chapter && <p className="text-xl sm:text-2xl">{slide.content.chapter}</p>}
           </div>
         )
       case "familyReport":
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <h2 className="text-2xl font-semibold mb-6">{slide.content.title}</h2>
-            <p className="text-xl whitespace-pre-line">{slide.content.text}</p>
+          <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8">
+            <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-6">{slide.content.title}</h2>
+            <p className="text-base sm:text-xl whitespace-pre-line">{slide.content.text}</p>
           </div>
         )
       default:
@@ -389,17 +389,17 @@ export default function PptPreview({ data }) {
         )}
       </div>
 
-      <div className="flex items-center justify-between mt-4">
+      <div className="flex items-center justify-between mt-2 sm:mt-4">
         <Button variant="outline" size="sm" onClick={prevSlide} disabled={currentSlide === 0}>
-          <ChevronLeft className="h-4 w-4 mr-1" /> 上一页
+          <ChevronLeft className="h-4 w-4 mr-0 sm:mr-1" /> <span className="hidden sm:inline">上一页</span>
         </Button>
 
-        <span className="text-sm">
-          幻灯片 {currentSlide + 1} / {slides.length}
+        <span className="text-xs sm:text-sm">
+          {currentSlide + 1} / {slides.length}
         </span>
 
         <Button variant="outline" size="sm" onClick={nextSlide} disabled={currentSlide === slides.length - 1}>
-          下一页 <ChevronRight className="h-4 w-4 ml-1" />
+          <span className="hidden sm:inline">下一页</span> <ChevronRight className="h-4 w-4 ml-0 sm:ml-1" />
         </Button>
       </div>
     </div>

@@ -10,7 +10,7 @@ import { templates } from "@/data/templates"
 import { fixedContent } from "@/data/fixed-content"
 import PptPreview from "@/components/ppt-preview"
 import StepNavigator from "@/components/step-navigator"
-import { ChevronLeft, ChevronRight, Download } from "lucide-react"
+import { ChevronLeft, ChevronRight, Download, ChevronUp, ChevronDown } from "lucide-react"
 import BasicInfoForm from "@/components/form-steps/basic-info-form"
 import ProclamationScriptureForm from "@/components/form-steps/proclamation-scripture-form"
 import FirstHymnForm from "@/components/form-steps/first-hymn-form"
@@ -50,6 +50,7 @@ export default function Home() {
   const [currentStep, setCurrentStep] = useState(0)
   const [validationErrors, setValidationErrors] = useState({})
   const [completedSteps, setCompletedSteps] = useState({})
+  const [showPreview, setShowPreview] = useState(true)
   const formRef = useRef(null)
 
   // 定义所有步骤
@@ -213,6 +214,8 @@ export default function Home() {
       // 前进到下一步
       if (currentStep < steps.length - 1) {
         setCurrentStep(currentStep + 1)
+        // 在移动设备上切换到下一步时自动滚动到顶部
+        window.scrollTo(0, 0)
       }
     }
   }
@@ -220,6 +223,8 @@ export default function Home() {
   const goToPreviousStep = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1)
+      // 在移动设备上切换到上一步时自动滚动到顶部
+      window.scrollTo(0, 0)
     }
   }
 
@@ -227,6 +232,8 @@ export default function Home() {
     // 只允许跳转到已完成的步骤或当前步骤
     if (stepIndex === currentStep || completedSteps[steps[stepIndex].id]) {
       setCurrentStep(stepIndex)
+      // 自动滚动到顶部
+      window.scrollTo(0, 0)
     }
   }
 
@@ -237,6 +244,11 @@ export default function Home() {
       fixedContent: fixedContent,
     }
     generatePPT(data)
+  }
+
+  // 切换预览的显示/隐藏
+  const togglePreview = () => {
+    setShowPreview(!showPreview)
   }
 
   // 渲染当前步骤的表单
@@ -289,13 +301,13 @@ export default function Home() {
   }
 
   return (
-    <main className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold text-center mb-8">崇拜PPT生成器</h1>
+    <main className="container mx-auto py-4 px-2 sm:py-8 sm:px-4">
+      <h1 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-8">崇拜PPT生成器</h1>
 
       <StepNavigator steps={steps} currentStep={currentStep} completedSteps={completedSteps} onStepClick={goToStep} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="space-y-6" ref={formRef}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
+        <div className="space-y-4 sm:space-y-6" ref={formRef}>
           <Card className="min-h-[400px]">
             <CardHeader>
               <CardTitle>{steps[currentStep].title}</CardTitle>
@@ -306,18 +318,18 @@ export default function Home() {
             <CardContent>
               {renderCurrentStepForm()}
 
-              <div className="flex justify-between mt-8">
+              <div className="flex justify-between mt-6 sm:mt-8">
                 <Button variant="outline" onClick={goToPreviousStep} disabled={currentStep === 0}>
-                  <ChevronLeft className="mr-2 h-4 w-4" /> 上一步
+                  <ChevronLeft className="mr-1 sm:mr-2 h-4 w-4" /> 上一步
                 </Button>
 
                 {currentStep < steps.length - 1 ? (
                   <Button onClick={goToNextStep}>
-                    下一步 <ChevronRight className="ml-2 h-4 w-4" />
+                    下一步 <ChevronRight className="ml-1 sm:ml-2 h-4 w-4" />
                   </Button>
                 ) : (
                   <Button onClick={handleGenerate}>
-                    生成PPT <Download className="ml-2 h-4 w-4" />
+                    生成PPT <Download className="ml-1 sm:ml-2 h-4 w-4" />
                   </Button>
                 )}
               </div>
@@ -325,13 +337,29 @@ export default function Home() {
           </Card>
         </div>
 
-        <div>
+        {/* 移动端预览切换按钮 */}
+        <div className="lg:hidden mt-2 mb-0">
+          <Button variant="outline" onClick={togglePreview} className="w-full flex items-center justify-center">
+            {showPreview ? (
+              <>
+                <ChevronUp className="mr-2 h-4 w-4" /> 隐藏预览
+              </>
+            ) : (
+              <>
+                <ChevronDown className="mr-2 h-4 w-4" /> 显示预览
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* 预览区域 */}
+        <div className={showPreview ? "block" : "hidden lg:block"}>
           <Card className="h-full">
             <CardHeader>
               <CardTitle>实时预览</CardTitle>
               <CardDescription>您的崇拜演示文稿预览</CardDescription>
             </CardHeader>
-            <CardContent className="h-[600px] overflow-auto">
+            <CardContent className="h-[400px] sm:h-[500px] md:h-[600px] overflow-auto">
               <PptPreview data={previewData} />
             </CardContent>
           </Card>

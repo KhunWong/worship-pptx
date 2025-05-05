@@ -75,10 +75,16 @@ export default function ScriptureSelector({ value, onChange, bibleVerses, allowC
     <div className="space-y-2">
       {allowCustom && (
         <Tabs value={mode} onValueChange={setMode} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="select">搜索经文</TabsTrigger>
-            <TabsTrigger value="browse">浏览圣经</TabsTrigger>
-            <TabsTrigger value="custom">自定义内容</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsTrigger value="select" className="py-2 px-1 text-xs sm:text-sm">
+              搜索经文
+            </TabsTrigger>
+            <TabsTrigger value="browse" className="py-2 px-1 text-xs sm:text-sm">
+              浏览圣经
+            </TabsTrigger>
+            <TabsTrigger value="custom" className="py-2 px-1 text-xs sm:text-sm">
+              自定义内容
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="select">
@@ -88,11 +94,11 @@ export default function ScriptureSelector({ value, onChange, bibleVerses, allowC
                   placeholder="搜索经文..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10"
+                  className="pr-10 h-10"
                 />
                 {searchTerm && (
                   <button
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground h-8 w-8 flex items-center justify-center"
                     onClick={() => {
                       setSearchTerm("")
                       setSearchResults([])
@@ -104,11 +110,11 @@ export default function ScriptureSelector({ value, onChange, bibleVerses, allowC
               </div>
 
               {searchResults.length > 0 ? (
-                <div className="max-h-60 overflow-y-auto border rounded-md">
+                <div className="max-h-48 sm:max-h-60 overflow-y-auto border rounded-md">
                   {searchResults.map((verse) => (
                     <div
                       key={verse.id}
-                      className={`p-2 cursor-pointer hover:bg-muted ${value === verse.id ? "bg-muted" : ""}`}
+                      className={`p-3 cursor-pointer hover:bg-muted ${value === verse.id ? "bg-muted" : ""}`}
                       onClick={() => handleSelectChange(verse.id)}
                     >
                       <div className="font-medium">{verse.reference}</div>
@@ -121,15 +127,15 @@ export default function ScriptureSelector({ value, onChange, bibleVerses, allowC
               ) : null}
 
               {selectedScripture && (
-                <div className="mt-2 p-2 bg-muted rounded-md">
-                  <div className="flex justify-between items-center">
-                    <div className="font-medium">{selectedScripture.reference}</div>
-                    <Button variant="ghost" size="sm" onClick={() => setShowContent(!showContent)}>
-                      {showContent ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                <div className="mt-2 p-3 bg-muted rounded-md">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                    <div className="font-medium mb-2 sm:mb-0">{selectedScripture.reference}</div>
+                    <Button variant="ghost" size="sm" onClick={() => setShowContent(!showContent)} className="h-9">
+                      {showContent ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
                       {showContent ? "收起" : "显示全部"}
                     </Button>
                   </div>
-                  {showContent && <div className="text-sm mt-1">{selectedScripture.text}</div>}
+                  {showContent && <div className="text-sm mt-2">{selectedScripture.text}</div>}
                 </div>
               )}
             </div>
@@ -137,11 +143,11 @@ export default function ScriptureSelector({ value, onChange, bibleVerses, allowC
 
           <TabsContent value="browse">
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div>
                   <Label htmlFor="volume">卷</Label>
                   <Select value={volume} onValueChange={setVolume}>
-                    <SelectTrigger id="volume">
+                    <SelectTrigger id="volume" className="h-10">
                       <SelectValue placeholder="选择卷" />
                     </SelectTrigger>
                     <SelectContent>
@@ -157,7 +163,7 @@ export default function ScriptureSelector({ value, onChange, bibleVerses, allowC
                 <div>
                   <Label htmlFor="chapter">章</Label>
                   <Select value={chapter} onValueChange={setChapter} disabled={!volume}>
-                    <SelectTrigger id="chapter">
+                    <SelectTrigger id="chapter" className="h-10">
                       <SelectValue placeholder="选择章" />
                     </SelectTrigger>
                     <SelectContent>
@@ -180,7 +186,7 @@ export default function ScriptureSelector({ value, onChange, bibleVerses, allowC
                     }}
                     disabled={!volume || !chapter}
                   >
-                    <SelectTrigger id="verse">
+                    <SelectTrigger id="verse" className="h-10">
                       <SelectValue placeholder="选择节" />
                     </SelectTrigger>
                     <SelectContent>
@@ -195,15 +201,15 @@ export default function ScriptureSelector({ value, onChange, bibleVerses, allowC
               </div>
 
               {selectedScripture && (
-                <div className="mt-2 p-2 bg-muted rounded-md">
-                  <div className="flex justify-between items-center">
-                    <div className="font-medium">{selectedScripture.reference}</div>
-                    <Button variant="ghost" size="sm" onClick={() => setShowContent(!showContent)}>
-                      {showContent ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                <div className="mt-2 p-3 bg-muted rounded-md">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                    <div className="font-medium mb-2 sm:mb-0">{selectedScripture.reference}</div>
+                    <Button variant="ghost" size="sm" onClick={() => setShowContent(!showContent)} className="h-9">
+                      {showContent ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
                       {showContent ? "收起" : "显示全部"}
                     </Button>
                   </div>
-                  {showContent && <div className="text-sm mt-1">{selectedScripture.text}</div>}
+                  {showContent && <div className="text-sm mt-2">{selectedScripture.text}</div>}
                 </div>
               )}
             </div>
@@ -222,7 +228,7 @@ export default function ScriptureSelector({ value, onChange, bibleVerses, allowC
 
       {!allowCustom && (
         <Select value={value} onValueChange={onChange}>
-          <SelectTrigger>
+          <SelectTrigger className="h-10">
             <SelectValue placeholder="选择一段经文" />
           </SelectTrigger>
           <SelectContent>

@@ -49,10 +49,10 @@ export default function ProclamationScriptureForm({ data, onChange, validationEr
       )}
 
       {data.proclamationScripture.sections.map((section, index) => (
-        <div key={index} className="space-y-2 p-4 border rounded-md">
-          <div className="flex justify-between items-center mb-2">
+        <div key={index} className="space-y-2 p-3 sm:p-4 border rounded-md">
+          <div className="flex flex-wrap sm:flex-nowrap justify-between items-center mb-2 gap-2">
             <Select value={section.type} onValueChange={(value) => updateScriptureSectionType(index, value)}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px] min-h-[40px]">
                 <SelectValue placeholder="选择类型" />
               </SelectTrigger>
               <SelectContent>
@@ -67,6 +67,7 @@ export default function ProclamationScriptureForm({ data, onChange, validationEr
               size="icon"
               onClick={() => removeScriptureSection(index)}
               disabled={data.proclamationScripture.sections.length <= 1}
+              className="h-9 w-9"
             >
               <Trash className="h-4 w-4" />
             </Button>
@@ -81,15 +82,15 @@ export default function ProclamationScriptureForm({ data, onChange, validationEr
         </div>
       ))}
 
-      <div className="flex space-x-2 mt-4">
-        <Button variant="outline" size="sm" onClick={() => addScriptureSection("leader")} className="flex-1">
-          <Plus className="h-4 w-4 mr-2" /> 添加领诵经文
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
+        <Button variant="outline" size="sm" onClick={() => addScriptureSection("leader")} className="h-10">
+          <Plus className="h-4 w-4 mr-1 sm:mr-2" /> 添加领诵经文
         </Button>
-        <Button variant="outline" size="sm" onClick={() => addScriptureSection("congregation")} className="flex-1">
-          <Plus className="h-4 w-4 mr-2" /> 添加会众经文
+        <Button variant="outline" size="sm" onClick={() => addScriptureSection("congregation")} className="h-10">
+          <Plus className="h-4 w-4 mr-1 sm:mr-2" /> 添加会众经文
         </Button>
-        <Button variant="outline" size="sm" onClick={() => addScriptureSection("unison")} className="flex-1">
-          <Plus className="h-4 w-4 mr-2" /> 添加齐诵经文
+        <Button variant="outline" size="sm" onClick={() => addScriptureSection("unison")} className="h-10">
+          <Plus className="h-4 w-4 mr-1 sm:mr-2" /> 添加齐诵经文
         </Button>
       </div>
     </div>

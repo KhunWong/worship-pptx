@@ -77,24 +77,28 @@ export default function HymnSelector({ value, onChange, hymns, allowCustom = fal
     <div className="space-y-2">
       {allowCustom && (
         <Tabs value={mode} onValueChange={setMode} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="select">选择诗歌</TabsTrigger>
-            <TabsTrigger value="custom">自定义内容</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 h-auto">
+            <TabsTrigger value="select" className="py-2 px-2">
+              选择诗歌
+            </TabsTrigger>
+            <TabsTrigger value="custom" className="py-2 px-2">
+              自定义内容
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="select">
             <div className="space-y-4">
-              <div className="flex space-x-2">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                 <div className="relative flex-1">
                   <Input
                     placeholder={searchMode === "name" ? "搜索诗歌名称..." : "输入诗歌编号..."}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pr-10"
+                    className="pr-10 h-10"
                   />
                   {searchTerm && (
                     <button
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground h-8 w-8 flex items-center justify-center"
                       onClick={() => {
                         setSearchTerm("")
                         setSearchResults([])
@@ -104,8 +108,8 @@ export default function HymnSelector({ value, onChange, hymns, allowCustom = fal
                     </button>
                   )}
                 </div>
-                <Tabs value={searchMode} onValueChange={setSearchMode} className="w-auto">
-                  <TabsList>
+                <Tabs value={searchMode} onValueChange={setSearchMode} className="w-full sm:w-auto">
+                  <TabsList className="grid w-full grid-cols-2 sm:flex h-10">
                     <TabsTrigger value="name" className="px-2">
                       名称
                     </TabsTrigger>
@@ -117,11 +121,11 @@ export default function HymnSelector({ value, onChange, hymns, allowCustom = fal
               </div>
 
               {searchResults.length > 0 ? (
-                <div className="max-h-60 overflow-y-auto border rounded-md">
+                <div className="max-h-48 sm:max-h-60 overflow-y-auto border rounded-md">
                   {searchResults.map((hymn) => (
                     <div
                       key={hymn.id}
-                      className={`p-2 cursor-pointer hover:bg-muted ${value === hymn.id ? "bg-muted" : ""}`}
+                      className={`p-3 cursor-pointer hover:bg-muted ${value === hymn.id ? "bg-muted" : ""}`}
                       onClick={() => handleSelectChange(hymn.id)}
                     >
                       <div className="font-medium">
@@ -137,40 +141,44 @@ export default function HymnSelector({ value, onChange, hymns, allowCustom = fal
               ) : null}
 
               {selectedHymn && !isEditing && (
-                <div className="mt-2 p-2 bg-muted rounded-md">
-                  <div className="flex justify-between items-center">
-                    <div className="font-medium">
+                <div className="mt-2 p-3 bg-muted rounded-md">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                    <div className="font-medium mb-2 sm:mb-0">
                       {selectedHymn.number ? `#${selectedHymn.number} - ` : ""}
                       {selectedHymn.title}
                     </div>
                     <div className="flex space-x-2">
-                      <Button variant="ghost" size="sm" onClick={() => setShowContent(!showContent)}>
-                        {showContent ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      <Button variant="ghost" size="sm" onClick={() => setShowContent(!showContent)} className="h-9">
+                        {showContent ? (
+                          <ChevronUp className="h-4 w-4 mr-1" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 mr-1" />
+                        )}
                         {showContent ? "收起" : "显示全部"}
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={startEditing}>
+                      <Button variant="ghost" size="sm" onClick={startEditing} className="h-9">
                         <Edit className="h-4 w-4 mr-1" />
                         编辑
                       </Button>
                     </div>
                   </div>
-                  {showContent && <div className="text-sm whitespace-pre-line mt-1">{selectedHymn.lyrics}</div>}
+                  {showContent && <div className="text-sm whitespace-pre-line mt-2">{selectedHymn.lyrics}</div>}
                 </div>
               )}
 
               {isEditing && (
-                <div className="mt-2 p-2 bg-muted rounded-md">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="font-medium">
+                <div className="mt-2 p-3 bg-muted rounded-md">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
+                    <div className="font-medium mb-2 sm:mb-0">
                       编辑歌词: {selectedHymn.number ? `#${selectedHymn.number} - ` : ""}
                       {selectedHymn.title}
                     </div>
                     <div className="flex space-x-2">
-                      <Button variant="ghost" size="sm" onClick={saveEditing}>
+                      <Button variant="ghost" size="sm" onClick={saveEditing} className="h-9">
                         <Save className="h-4 w-4 mr-1" />
                         保存
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={cancelEditing}>
+                      <Button variant="ghost" size="sm" onClick={cancelEditing} className="h-9">
                         <X className="h-4 w-4 mr-1" />
                         取消
                       </Button>
@@ -209,7 +217,7 @@ export default function HymnSelector({ value, onChange, hymns, allowCustom = fal
 
       {!allowCustom && (
         <Select value={value} onValueChange={onChange}>
-          <SelectTrigger>
+          <SelectTrigger className="h-10">
             <SelectValue placeholder="选择一首诗歌" />
           </SelectTrigger>
           <SelectContent>
