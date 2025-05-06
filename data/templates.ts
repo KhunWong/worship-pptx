@@ -1,10 +1,15 @@
 export const templates = [
   {
-    id: "default",
-    name: "默认蓝色",
-    primaryColor: "#3b82f6",
-    secondaryColor: "#1e3a8a",
-    fontFamily: "Arial",
+    id: "sunday-worship",
+    name: "主日崇拜",
+    backgroundImage: "/backgrounds/sunday-worship.jpg",
+    fontFamily: "SimSun, 宋体",
+  },
+  {
+    id: "communion-sunday",
+    name: "圣餐主日",
+    backgroundImage: "/backgrounds/communion-sunday.jpg",
+    fontFamily: "SimSun, 宋体",
   },
   {
     id: "elegant",

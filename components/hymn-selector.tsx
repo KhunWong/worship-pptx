@@ -6,7 +6,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { ChevronDown, ChevronUp, Edit, Save, X } from "lucide-react"
+import { ChevronDown, ChevronUp, Edit, Save, X, Copy, GripVertical } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 
 export default function HymnSelector({ value, onChange, hymns, allowCustom = false }) {
   const [mode, setMode] = useState(value && !hymns.find((h) => h.id === value) ? "custom" : "select")
@@ -15,7 +17,29 @@ export default function HymnSelector({ value, onChange, hymns, allowCustom = fal
   const [searchMode, setSearchMode] = useState("name") // "name" or "number"
   const [showContent, setShowContent] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
-  const [editedLyrics, setEditedLyrics] = useState("")
+  const [verses, setVerses] = useState([])
+  const [draggingIndex, setDraggingIndex] = useState(null)
+
+  // 将整首诗歌拆分为段落
+  useEffect(() => {
+    if (value) {
+      let lyricsContent = value
+
+      // 如果是ID引用，获取诗歌内容
+      if (typeof value === "string" && !value.includes("\n")) {
+        const hymn = hymns.find((h) => h.id === value)
+        if (hymn) {
+          lyricsContent = hymn.lyrics
+        }
+      }
+
+      // 分割歌词为段落
+      const versesArray = lyricsContent.split("\n\n").filter((verse) => verse.trim() !== "")
+      setVerses(versesArray)
+    } else {
+      setVerses([])
+    }
+  }, [value, hymns])
 
   const handleSelectChange = (selectedId) => {
     onChange(selectedId)
@@ -23,6 +47,7 @@ export default function HymnSelector({ value, onChange, hymns, allowCustom = fal
     setSearchTerm("") // 清除搜索
     setSearchResults([]) // 清除搜索结果
     setIsEditing(false) // 重置编辑状态
+    setShowContent(true) // 自动展开内容
   }
 
   const handleCustomChange = (customText) => {
@@ -33,14 +58,15 @@ export default function HymnSelector({ value, onChange, hymns, allowCustom = fal
   const startEditing = () => {
     const selectedHymn = hymns.find((h) => h.id === value)
     if (selectedHymn) {
-      setEditedLyrics(selectedHymn.lyrics)
       setIsEditing(true)
     }
   }
 
   // 保存编辑后的歌词
   const saveEditing = () => {
-    handleCustomChange(editedLyrics)
+    // 使用当前排序后的verses数组
+    const updatedLyrics = verses.join("\n\n")
+    handleCustomChange(updatedLyrics)
     setMode("custom")
     setIsEditing(false)
   }
@@ -48,6 +74,56 @@ export default function HymnSelector({ value, onChange, hymns, allowCustom = fal
   // 取消编辑
   const cancelEditing = () => {
     setIsEditing(false)
+    // 重置为原始歌词
+    if (value && typeof value === "string" && !value.includes("\n")) {
+      const hymn = hymns.find((h) => h.id === value)
+      if (hymn) {
+        const originalVerses = hymn.lyrics.split("\n\n").filter((verse) => verse.trim() !== "")
+        setVerses(originalVerses)
+      }
+    }
+  }
+
+  // 更新特定段落的内容
+  const updateVerse = (index, newContent) => {
+    const newVerses = [...verses]
+    newVerses[index] = newContent
+    setVerses(newVerses)
+  }
+
+  // 复制段落文本到剪贴板
+  const copyVerseToClipboard = (verse) => {
+    navigator.clipboard
+      .writeText(verse)
+      .then(() => {
+        alert("已复制到剪贴板")
+      })
+      .catch((err) => {
+        console.error("复制失败:", err)
+      })
+  }
+
+  // 拖拽相关函数
+  const handleDragStart = (index) => {
+    setDraggingIndex(index)
+  }
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault()
+    if (draggingIndex === null || draggingIndex === index) return
+
+    // 重新排序
+    const newVerses = [...verses]
+    const draggedVerse = newVerses[draggingIndex]
+    newVerses.splice(draggingIndex, 1)
+    newVerses.splice(index, 0, draggedVerse)
+
+    setVerses(newVerses)
+    setDraggingIndex(index)
+  }
+
+  const handleDragEnd = () => {
+    setDraggingIndex(null)
   }
 
   useEffect(() => {
@@ -141,8 +217,8 @@ export default function HymnSelector({ value, onChange, hymns, allowCustom = fal
               ) : null}
 
               {selectedHymn && !isEditing && (
-                <div className="mt-2 p-3 bg-muted rounded-md">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                <div className="mt-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-muted p-3 rounded-t-md">
                     <div className="font-medium mb-2 sm:mb-0">
                       {selectedHymn.number ? `#${selectedHymn.number} - ` : ""}
                       {selectedHymn.title}
@@ -162,13 +238,36 @@ export default function HymnSelector({ value, onChange, hymns, allowCustom = fal
                       </Button>
                     </div>
                   </div>
-                  {showContent && <div className="text-sm whitespace-pre-line mt-2">{selectedHymn.lyrics}</div>}
+
+                  {showContent && (
+                    <div className="border rounded-b-md p-3">
+                      {verses.map((verse, index) => (
+                        <Card key={index} className="mb-3 bg-gray-50">
+                          <CardContent className="p-3">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="font-medium">第 {index + 1} 节</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyVerseToClipboard(verse)}
+                                className="h-7"
+                              >
+                                <Copy className="h-3.5 w-3.5 mr-1" />
+                                复制
+                              </Button>
+                            </div>
+                            <p className="text-sm whitespace-pre-line">{verse}</p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
               {isEditing && (
-                <div className="mt-2 p-3 bg-muted rounded-md">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
+                <div className="mt-2 border rounded-md">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-muted p-3">
                     <div className="font-medium mb-2 sm:mb-0">
                       编辑歌词: {selectedHymn.number ? `#${selectedHymn.number} - ` : ""}
                       {selectedHymn.title}
@@ -184,17 +283,44 @@ export default function HymnSelector({ value, onChange, hymns, allowCustom = fal
                       </Button>
                     </div>
                   </div>
-                  <div className="text-sm">
-                    <Textarea
-                      value={editedLyrics}
-                      onChange={(e) => setEditedLyrics(e.target.value)}
-                      rows={8}
-                      placeholder="编辑歌词内容..."
-                      className="w-full"
-                    />
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      提示: 每个段落之间请用空行分隔，每个段落将作为一页幻灯片显示
-                    </div>
+
+                  <div className="p-3">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      您可以编辑每一节的内容，或拖动每一节来重新排序。歌名不可修改。
+                    </p>
+
+                    {verses.map((verse, index) => (
+                      <div
+                        key={index}
+                        draggable
+                        onDragStart={() => handleDragStart(index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        className={cn(
+                          "mb-3 border rounded-md p-3",
+                          draggingIndex === index ? "border-primary bg-primary/5" : "",
+                        )}
+                      >
+                        <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center">
+                            <span className="cursor-move p-1 mr-2 text-gray-500 hover:text-gray-700">
+                              <GripVertical className="h-5 w-5" />
+                            </span>
+                            <span className="font-medium">第 {index + 1} 节</span>
+                          </div>
+                          <Button variant="ghost" size="sm" onClick={() => copyVerseToClipboard(verse)} className="h-7">
+                            <Copy className="h-3.5 w-3.5 mr-1" />
+                            复制
+                          </Button>
+                        </div>
+                        <Textarea
+                          value={verse}
+                          onChange={(e) => updateVerse(index, e.target.value)}
+                          rows={4}
+                          className="w-full"
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

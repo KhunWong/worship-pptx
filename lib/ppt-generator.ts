@@ -12,6 +12,7 @@ export const generatePPT = (data) => {
     primaryColor: "#3b82f6",
     secondaryColor: "#1e3a8a",
     fontFamily: "Arial",
+    backgroundImage: null,
   }
 
   // Helper function to get scripture text from ID or use custom text
@@ -38,9 +39,32 @@ export const generatePPT = (data) => {
     return { title: "自定义诗歌", lyrics: hymnValue }
   }
 
+  // 创建幻灯片背景设置
+  const getSlideBackground = () => {
+    if (template.backgroundImage) {
+      return { path: template.backgroundImage }
+    }
+    return { color: template.primaryColor }
+  }
+
+  // 添加半透明黑色遮罩（如果使用背景图片）
+  const addOverlay = (slide) => {
+    if (template.backgroundImage) {
+      slide.addShape(pres.ShapeType.RECTANGLE, {
+        x: 0,
+        y: 0,
+        w: "100%",
+        h: "100%",
+        fill: { color: "000000", transparency: 40 },
+      })
+    }
+  }
+
   // 1. 标题页
   const titleSlide = pres.addSlide()
-  titleSlide.background = { color: template.primaryColor }
+  titleSlide.background = getSlideBackground()
+  addOverlay(titleSlide)
+
   titleSlide.addText(data.title, {
     x: "10%",
     y: "40%",
@@ -66,7 +90,9 @@ export const generatePPT = (data) => {
 
   // 2. 序乐标题页
   const preludeSlide = pres.addSlide()
-  preludeSlide.background = { color: template.primaryColor }
+  preludeSlide.background = getSlideBackground()
+  addOverlay(preludeSlide)
+
   preludeSlide.addText("序乐", {
     x: "10%",
     y: "40%",
@@ -81,7 +107,9 @@ export const generatePPT = (data) => {
 
   // 3. 宣告标题页
   const proclamationSlide = pres.addSlide()
-  proclamationSlide.background = { color: template.primaryColor }
+  proclamationSlide.background = getSlideBackground()
+  addOverlay(proclamationSlide)
+
   proclamationSlide.addText("宣告", {
     x: "10%",
     y: "40%",
@@ -94,58 +122,160 @@ export const generatePPT = (data) => {
     bold: true,
   })
 
-  // 修改宣告经文部分的处理逻辑
-
-  // 4. 宣告经文
+  // 4. 宣告经文 - 使用智能分页
   if (data.proclamationScripture.sections && data.proclamationScripture.sections.length > 0) {
-    const scriptureSlide = pres.addSlide()
-    scriptureSlide.background = { color: template.primaryColor }
+    // 经文分页的辅助函数
+    const createProclamationSlides = () => {
+      const MAX_CHARS_PER_SLIDE = 200 // 每页最大字符数
+      const sections = data.proclamationScripture.sections.filter((s) => s.content)
 
-    scriptureSlide.addText("宣告经文", {
-      x: "10%",
-      y: "10%",
-      w: "80%",
-      h: "10%",
-      fontSize: 32,
-      color: "FFFFFF",
-      fontFace: template.fontFamily,
-      align: "center",
-      bold: true,
-    })
+      if (sections.length === 0) return
 
-    let yPos = 25
+      let currentSections = []
+      let currentLength = 0
 
-    data.proclamationScripture.sections.forEach((section, index) => {
-      const label = section.type === "leader" ? "领诵:" : section.type === "congregation" ? "会众:" : "齐诵:"
+      for (let i = 0; i < sections.length; i++) {
+        const section = sections[i]
+        const text = getScriptureText(section.content)
+        const sectionLength = text ? text.length : 0
 
-      scriptureSlide.addText(label, {
+        // 领诵和会众成对处理
+        if (section.type === "leader" && i + 1 < sections.length && sections[i + 1].type === "congregation") {
+          const nextText = getScriptureText(sections[i + 1].content)
+          const pairLength = sectionLength + (nextText ? nextText.length : 0)
+
+          // 如果当前页面剩余空间不足以容纳一对领诵和会众
+          if (currentLength > 0 && currentLength + pairLength > MAX_CHARS_PER_SLIDE) {
+            // 创建当前页并开始新页
+            createScriptureSlide(currentSections)
+            currentSections = []
+            currentLength = 0
+          }
+
+          // 添加领诵和会众经文
+          currentSections.push({
+            type: section.type,
+            text: text,
+          })
+
+          currentSections.push({
+            type: sections[i + 1].type,
+            text: getScriptureText(sections[i + 1].content),
+          })
+
+          currentLength += pairLength
+          i++ // 跳过下一个会众经文
+        }
+        // 处理齐诵经文或单独的领诵/会众经文
+        else {
+          // 如果当前经文太长或页面空间不足
+          if (
+            sectionLength > MAX_CHARS_PER_SLIDE ||
+            (currentLength > 0 && currentLength + sectionLength > MAX_CHARS_PER_SLIDE)
+          ) {
+            if (currentLength > 0) {
+              // 只有当前页有内容时才添加
+              createScriptureSlide(currentSections)
+              currentSections = []
+              currentLength = 0
+            }
+
+            // 对于特别长的齐诵经文，可能需要进一步分割
+            if (sectionLength > MAX_CHARS_PER_SLIDE) {
+              // 简单的文本分割逻辑，可以根据需要优化
+              const chunks = []
+              let start = 0
+              while (start < text.length) {
+                const end = Math.min(start + MAX_CHARS_PER_SLIDE, text.length)
+                chunks.push(text.substring(start, end))
+                start = end
+              }
+
+              for (const chunk of chunks) {
+                const tempSections = [
+                  {
+                    type: section.type,
+                    text: chunk,
+                  },
+                ]
+                createScriptureSlide(tempSections)
+              }
+            } else {
+              currentSections.push({
+                type: section.type,
+                text: text,
+              })
+              currentLength = sectionLength
+            }
+          } else {
+            currentSections.push({
+              type: section.type,
+              text: text,
+            })
+            currentLength += sectionLength
+          }
+        }
+      }
+
+      // 处理最后一页
+      if (currentSections.length > 0) {
+        createScriptureSlide(currentSections)
+      }
+    }
+
+    // 创建经文幻灯片
+    const createScriptureSlide = (sections) => {
+      const scriptureSlide = pres.addSlide()
+      scriptureSlide.background = getSlideBackground()
+      addOverlay(scriptureSlide)
+
+      scriptureSlide.addText("宣告经文", {
         x: "10%",
-        y: `${yPos}%`,
+        y: "10%",
         w: "80%",
-        h: "5%",
-        fontSize: 24,
+        h: "10%",
+        fontSize: 32,
         color: "FFFFFF",
         fontFace: template.fontFamily,
         align: "center",
         bold: true,
       })
 
-      const scriptureText = getScriptureText(section.content)
+      let yPos = 25
 
-      scriptureSlide.addText(scriptureText, {
-        x: "10%",
-        y: `${yPos + 6}%`,
-        w: "80%",
-        h: "10%",
-        fontSize: 20,
-        color: "FFFFFF",
-        fontFace: template.fontFamily,
-        align: "center",
-        italic: true,
+      sections.forEach((section) => {
+        const label = section.type === "leader" ? "领诵:" : section.type === "congregation" ? "会众:" : "齐诵:"
+
+        scriptureSlide.addText(label, {
+          x: "10%",
+          y: `${yPos}%`,
+          w: "80%",
+          h: "5%",
+          fontSize: 24,
+          color: "FFFFFF",
+          fontFace: template.fontFamily,
+          align: "center",
+          bold: true,
+        })
+
+        scriptureSlide.addText(section.text, {
+          x: "10%",
+          y: `${yPos + 6}%`,
+          w: "80%",
+          h: "10%",
+          fontSize: 20,
+          color: "FFFFFF",
+          fontFace: template.fontFamily,
+          align: "center",
+          italic: true,
+        })
+
+        yPos += 20 // 为下一个部分增加垂直空间
       })
+    }
 
-      yPos += 20 // 为下一个部分增加垂直空间
-    })
+    // 执行经文分页创建
+    createProclamationSlides()
   }
 
   // 5. 第一首诗歌
@@ -157,7 +287,8 @@ export const generatePPT = (data) => {
       const verses = hymnContent.lyrics.split("\n\n")
       verses.forEach((verse, index) => {
         const hymnSlide = pres.addSlide()
-        hymnSlide.background = { color: template.primaryColor }
+        hymnSlide.background = getSlideBackground()
+        addOverlay(hymnSlide)
 
         hymnSlide.addText(hymnContent.title, {
           x: "10%",
@@ -196,43 +327,46 @@ export const generatePPT = (data) => {
     }
   }
 
-  // 6. 衔接经文
-  if (data.firstLinkingScripture) {
-    const scriptureContent =
-      typeof data.firstLinkingScripture === "string" &&
-      data.firstLinkingScripture.length > 0 &&
-      !data.firstLinkingScripture.includes("\n")
-        ? bibleVerses.find((v) => v.id === data.firstLinkingScripture)
-        : { reference: "经文", text: data.firstLinkingScripture }
+  // 6. 衔接经文 - 支持多个经文
+  if (data.linkingScriptures && data.linkingScriptures.length > 0) {
+    data.linkingScriptures.forEach((item) => {
+      if (!item.content) return
 
-    if (scriptureContent && scriptureContent.text) {
-      const scriptureSlide = pres.addSlide()
-      scriptureSlide.background = { color: template.primaryColor }
+      const scriptureContent =
+        typeof item.content === "string" && !item.content.includes("\n")
+          ? bibleVerses.find((v) => v.id === item.content)
+          : { reference: "经文", text: item.content }
 
-      scriptureSlide.addText(scriptureContent.reference, {
-        x: "10%",
-        y: "30%",
-        w: "80%",
-        h: "10%",
-        fontSize: 32,
-        color: "FFFFFF",
-        fontFace: template.fontFamily,
-        align: "center",
-        bold: true,
-      })
+      if (scriptureContent && scriptureContent.text) {
+        const scriptureSlide = pres.addSlide()
+        scriptureSlide.background = getSlideBackground()
+        addOverlay(scriptureSlide)
 
-      scriptureSlide.addText(scriptureContent.text, {
-        x: "10%",
-        y: "45%",
-        w: "80%",
-        h: "30%",
-        fontSize: 24,
-        color: "FFFFFF",
-        fontFace: template.fontFamily,
-        align: "center",
-        italic: true,
-      })
-    }
+        scriptureSlide.addText(scriptureContent.reference, {
+          x: "10%",
+          y: "30%",
+          w: "80%",
+          h: "10%",
+          fontSize: 32,
+          color: "FFFFFF",
+          fontFace: template.fontFamily,
+          align: "center",
+          bold: true,
+        })
+
+        scriptureSlide.addText(scriptureContent.text, {
+          x: "10%",
+          y: "45%",
+          w: "80%",
+          h: "30%",
+          fontSize: 24,
+          color: "FFFFFF",
+          fontFace: template.fontFamily,
+          align: "center",
+          italic: true,
+        })
+      }
+    })
   }
 
   // 7. 第二首诗歌
@@ -244,7 +378,8 @@ export const generatePPT = (data) => {
       const verses = hymnContent.lyrics.split("\n\n")
       verses.forEach((verse, index) => {
         const hymnSlide = pres.addSlide()
-        hymnSlide.background = { color: template.primaryColor }
+        hymnSlide.background = getSlideBackground()
+        addOverlay(hymnSlide)
 
         hymnSlide.addText(hymnContent.title, {
           x: "10%",
@@ -283,46 +418,7 @@ export const generatePPT = (data) => {
     }
   }
 
-  // 8. 衔接经文
-  if (data.secondLinkingScripture) {
-    const scriptureContent =
-      typeof data.secondLinkingScripture === "string" &&
-      data.secondLinkingScripture.length > 0 &&
-      !data.secondLinkingScripture.includes("\n")
-        ? bibleVerses.find((v) => v.id === data.secondLinkingScripture)
-        : { reference: "经文", text: data.secondLinkingScripture }
-
-    if (scriptureContent && scriptureContent.text) {
-      const scriptureSlide = pres.addSlide()
-      scriptureSlide.background = { color: template.primaryColor }
-
-      scriptureSlide.addText(scriptureContent.reference, {
-        x: "10%",
-        y: "30%",
-        w: "80%",
-        h: "10%",
-        fontSize: 32,
-        color: "FFFFFF",
-        fontFace: template.fontFamily,
-        align: "center",
-        bold: true,
-      })
-
-      scriptureSlide.addText(scriptureContent.text, {
-        x: "10%",
-        y: "45%",
-        w: "80%",
-        h: "30%",
-        fontSize: 24,
-        color: "FFFFFF",
-        fontFace: template.fontFamily,
-        align: "center",
-        italic: true,
-      })
-    }
-  }
-
-  // 9. 第三首诗歌
+  // 8. 第三首诗歌
   if (data.thirdHymn) {
     const hymnContent = getHymnContent(data.thirdHymn)
 
@@ -331,7 +427,8 @@ export const generatePPT = (data) => {
       const verses = hymnContent.lyrics.split("\n\n")
       verses.forEach((verse, index) => {
         const hymnSlide = pres.addSlide()
-        hymnSlide.background = { color: template.primaryColor }
+        hymnSlide.background = getSlideBackground()
+        addOverlay(hymnSlide)
 
         hymnSlide.addText(hymnContent.title, {
           x: "10%",
@@ -370,13 +467,14 @@ export const generatePPT = (data) => {
     }
   }
 
-  // 10. 使徒信经（固定内容，分两页显示）
+  // 9. 使徒信经（固定内容，分两页显示）
   const creedText = data.fixedContent.apostlesCreed
   const creedParts = creedText.split("===PAGE_BREAK===")
 
   // First page of Apostles' Creed
   const creedSlide1 = pres.addSlide()
-  creedSlide1.background = { color: template.primaryColor }
+  creedSlide1.background = getSlideBackground()
+  addOverlay(creedSlide1)
 
   creedSlide1.addText("使徒信经", {
     x: "10%",
@@ -414,7 +512,8 @@ export const generatePPT = (data) => {
 
   // Second page of Apostles' Creed
   const creedSlide2 = pres.addSlide()
-  creedSlide2.background = { color: template.primaryColor }
+  creedSlide2.background = getSlideBackground()
+  addOverlay(creedSlide2)
 
   creedSlide2.addText("使徒信经", {
     x: "10%",
@@ -450,13 +549,14 @@ export const generatePPT = (data) => {
     align: "center",
   })
 
-  // 11. 信息分享标题页
+  // 10. 信息分享标题页 - 添加副标题支持
   const infoSlide = pres.addSlide()
-  infoSlide.background = { color: template.primaryColor }
+  infoSlide.background = getSlideBackground()
+  addOverlay(infoSlide)
 
   infoSlide.addText(data.infoSharingTitle, {
     x: "10%",
-    y: "40%",
+    y: "35%",
     w: "80%",
     h: "15%",
     fontSize: 44,
@@ -466,10 +566,24 @@ export const generatePPT = (data) => {
     bold: true,
   })
 
+  if (data.infoSharingSubtitle) {
+    infoSlide.addText(data.infoSharingSubtitle, {
+      x: "10%",
+      y: "50%",
+      w: "80%",
+      h: "10%",
+      fontSize: 36,
+      color: "FFFFFF",
+      fontFace: template.fontFamily,
+      align: "center",
+    })
+  }
+
   if (data.infoSharingChapter) {
+    const yPos = data.infoSharingSubtitle ? 62 : 55
     infoSlide.addText(data.infoSharingChapter, {
       x: "10%",
-      y: "60%",
+      y: `${yPos}%`,
       w: "80%",
       h: "10%",
       fontSize: 32,
@@ -479,7 +593,7 @@ export const generatePPT = (data) => {
     })
   }
 
-  // 12. 回应诗歌
+  // 11. 回应诗歌
   if (data.responseHymn) {
     const hymnContent = getHymnContent(data.responseHymn)
 
@@ -488,7 +602,8 @@ export const generatePPT = (data) => {
       const verses = hymnContent.lyrics.split("\n\n")
       verses.forEach((verse, index) => {
         const hymnSlide = pres.addSlide()
-        hymnSlide.background = { color: template.primaryColor }
+        hymnSlide.background = getSlideBackground()
+        addOverlay(hymnSlide)
 
         hymnSlide.addText(hymnContent.title, {
           x: "10%",
@@ -527,36 +642,84 @@ export const generatePPT = (data) => {
     }
   }
 
-  // 13. 家事报告
-  if (data.familyReport) {
-    const familySlide = pres.addSlide()
-    familySlide.background = { color: template.primaryColor }
+  // 12. 家事报告 - 支持分页和序号列表
+  if (data.familyReport && data.familyReport.length > 0) {
+    const MAX_ITEMS_PER_SLIDE = 5 // 每页最多显示的条目数
+    const validReports = data.familyReport.filter((item) => item.content)
 
-    familySlide.addText("家事报告", {
-      x: "10%",
-      y: "10%",
-      w: "80%",
-      h: "10%",
-      fontSize: 36,
-      color: "FFFFFF",
-      fontFace: template.fontFamily,
-      align: "center",
-      bold: true,
-    })
+    if (validReports.length > 0) {
+      // 分批处理家事报告
+      for (let i = 0; i < validReports.length; i += MAX_ITEMS_PER_SLIDE) {
+        const batchReports = validReports.slice(i, i + MAX_ITEMS_PER_SLIDE)
 
-    familySlide.addText(data.familyReport, {
-      x: "10%",
-      y: "25%",
-      w: "80%",
-      h: "65%",
-      fontSize: 24,
-      color: "FFFFFF",
-      fontFace: template.fontFamily,
-      align: "center",
-    })
+        const familySlide = pres.addSlide()
+        familySlide.background = getSlideBackground()
+        addOverlay(familySlide)
+
+        familySlide.addText("家事报告", {
+          x: "10%",
+          y: "10%",
+          w: "80%",
+          h: "10%",
+          fontSize: 36,
+          color: "FFFFFF",
+          fontFace: template.fontFamily,
+          align: "center",
+          bold: true,
+        })
+
+        // 左对齐显示每个条目
+        let yPos = 25
+        batchReports.forEach((report, index) => {
+          // 添加序号
+          familySlide.addText(`${i + index + 1}.`, {
+            x: "16%",
+            y: `${yPos}%`,
+            w: "5%",
+            h: "5%",
+            fontSize: 24,
+            color: "FFFFFF",
+            fontFace: template.fontFamily,
+            align: "left",
+            bold: true,
+          })
+
+          // 添加内容
+          familySlide.addText(report.content, {
+            x: "22%",
+            y: `${yPos}%`,
+            w: "68%",
+            h: "10%",
+            fontSize: 24,
+            color: "FFFFFF",
+            fontFace: template.fontFamily,
+            align: "left",
+          })
+
+          yPos += 10 // 为下一个条目增加垂直空间
+        })
+
+        // 添加页码（如果有多页）
+        if (validReports.length > MAX_ITEMS_PER_SLIDE) {
+          const pageNumber = Math.floor(i / MAX_ITEMS_PER_SLIDE) + 1
+          const totalPages = Math.ceil(validReports.length / MAX_ITEMS_PER_SLIDE)
+
+          familySlide.addText(`第 ${pageNumber} 页 / 共 ${totalPages} 页`, {
+            x: "10%",
+            y: "90%",
+            w: "80%",
+            h: "5%",
+            fontSize: 16,
+            color: "FFFFFF",
+            fontFace: template.fontFamily,
+            align: "center",
+          })
+        }
+      }
+    }
   }
 
-  // 14. 差遣诗歌/经文
+  // 13. 差遣诗歌/经文
   if (data.sendingHymn) {
     const hymnContent = getHymnContent(data.sendingHymn)
 
@@ -565,7 +728,8 @@ export const generatePPT = (data) => {
       const verses = hymnContent.lyrics.split("\n\n")
       verses.forEach((verse, index) => {
         const hymnSlide = pres.addSlide()
-        hymnSlide.background = { color: template.primaryColor }
+        hymnSlide.background = getSlideBackground()
+        addOverlay(hymnSlide)
 
         hymnSlide.addText(hymnContent.title, {
           x: "10%",
@@ -604,9 +768,10 @@ export const generatePPT = (data) => {
     }
   }
 
-  // 15. 主祷文标题页
+  // 14. 主祷文标题页
   const prayerSlide = pres.addSlide()
-  prayerSlide.background = { color: template.primaryColor }
+  prayerSlide.background = getSlideBackground()
+  addOverlay(prayerSlide)
 
   prayerSlide.addText("公祷", {
     x: "10%",
@@ -620,9 +785,10 @@ export const generatePPT = (data) => {
     bold: true,
   })
 
-  // 16. 结束页
+  // 15. 结束页
   const endSlide = pres.addSlide()
-  endSlide.background = { color: template.primaryColor }
+  endSlide.background = getSlideBackground()
+  addOverlay(endSlide)
 
   endSlide.addText("平安散会", {
     x: "10%",

@@ -10,7 +10,7 @@ import { templates } from "@/data/templates"
 import { fixedContent } from "@/data/fixed-content"
 import PptPreview from "@/components/ppt-preview"
 import StepNavigator from "@/components/step-navigator"
-import { ChevronLeft, ChevronRight, Download, ChevronUp, ChevronDown } from "lucide-react"
+import { ChevronLeft, ChevronRight, Download } from "lucide-react"
 import BasicInfoForm from "@/components/form-steps/basic-info-form"
 import ProclamationScriptureForm from "@/components/form-steps/proclamation-scripture-form"
 import FirstHymnForm from "@/components/form-steps/first-hymn-form"
@@ -23,50 +23,52 @@ import ResponseHymnForm from "@/components/form-steps/response-hymn-form"
 import FamilyReportForm from "@/components/form-steps/family-report-form"
 import SendingHymnForm from "@/components/form-steps/sending-hymn-form"
 import FinalStep from "@/components/form-steps/final-step"
+import { useMobile } from "@/hooks/use-mobile"
 
 export default function Home() {
   const [worshipData, setWorshipData] = useState({
     title: "主日崇拜",
     date: new Date().toISOString().split("T")[0],
-    template: "default",
+    template: "sunday-worship", // 默认使用主日崇拜模板
     proclamationScripture: {
       sections: [
         { type: "leader", content: "" },
         { type: "congregation", content: "" },
       ],
     },
+    linkingScriptures: [{ content: "" }], // 修改衔接经文为数组结构
     firstHymn: "",
-    firstLinkingScripture: "",
     secondHymn: "",
-    secondLinkingScripture: "",
     thirdHymn: "",
-    infoSharingTitle: "信息分享",
+    infoSharingTitle: "", // 修改为空字符串，默认未完成状态
+    infoSharingSubtitle: "", // 添加副标题字段
     infoSharingChapter: "",
     responseHymn: "",
-    familyReport: "",
+    familyReport: [{ content: "" }], // 修改为数组结构，支持多条目
     sendingHymn: "",
   })
 
   const [currentStep, setCurrentStep] = useState(0)
   const [validationErrors, setValidationErrors] = useState({})
   const [completedSteps, setCompletedSteps] = useState({})
-  const [showPreview, setShowPreview] = useState(true)
+  const [previewSlide, setPreviewSlide] = useState(0) // 添加预览幻灯片状态
   const formRef = useRef(null)
+  const isMobile = useMobile()
 
   // 定义所有步骤
   const steps = [
-    { id: "basicInfo", title: "基本信息" },
-    { id: "proclamationScripture", title: "宣告经文" },
-    { id: "firstHymn", title: "第一首诗歌" },
-    { id: "firstLinkingScripture", title: "衔接经文一" },
-    { id: "secondHymn", title: "第二首诗歌" },
-    { id: "secondLinkingScripture", title: "衔接经文二" },
-    { id: "thirdHymn", title: "第三首诗歌" },
-    { id: "infoSharing", title: "信息分享" },
-    { id: "responseHymn", title: "回应诗歌" },
-    { id: "familyReport", title: "家事报告" },
-    { id: "sendingHymn", title: "差遣诗歌" },
-    { id: "final", title: "完成" },
+    { id: "basicInfo", title: "基本信息", previewSlideIndex: 0 }, // 添加对应的预览幻灯片索引
+    { id: "proclamationScripture", title: "宣告经文", previewSlideIndex: 3 },
+    { id: "firstHymn", title: "第一首诗歌", previewSlideIndex: 4 },
+    { id: "firstLinkingScripture", title: "衔接经文一", previewSlideIndex: 5 },
+    { id: "secondHymn", title: "第二首诗歌", previewSlideIndex: 6 },
+    { id: "secondLinkingScripture", title: "衔接经文二", previewSlideIndex: 7 },
+    { id: "thirdHymn", title: "第三首诗歌", previewSlideIndex: 8 },
+    { id: "infoSharing", title: "信息分享", previewSlideIndex: 10 },
+    { id: "responseHymn", title: "回应诗歌", previewSlideIndex: 11 },
+    { id: "familyReport", title: "家事报告", previewSlideIndex: 12 },
+    { id: "sendingHymn", title: "差遣诗歌", previewSlideIndex: 13 },
+    { id: "final", title: "完成", previewSlideIndex: 0 },
   ]
 
   const handleDataChange = (newData) => {
@@ -75,6 +77,18 @@ export default function Home() {
       ...newData,
     }
     setWorshipData(updatedData)
+
+    // 如果模板发生变化，自动更新标题
+    if (newData.template && newData.template !== worshipData.template) {
+      const selectedTemplate = templates.find((t) => t.id === newData.template)
+      if (selectedTemplate) {
+        // 如果是默认的标题或之前的模板对应的标题，则更新
+        if (worshipData.title === "主日崇拜" || worshipData.title === "圣餐主日") {
+          updatedData.title = selectedTemplate.name
+          setWorshipData(updatedData)
+        }
+      }
+    }
 
     // 立即重新验证表单，清除已解决的错误
     const currentErrors = { ...validationErrors }
@@ -106,9 +120,8 @@ export default function Home() {
     // 检查其他字段
     const simpleFields = [
       "firstHymn",
-      "firstLinkingScripture",
+      "linkingScriptures",
       "secondHymn",
-      "secondLinkingScripture",
       "thirdHymn",
       "infoSharingTitle",
       "responseHymn",
@@ -138,13 +151,15 @@ export default function Home() {
       basicInfo: data.title && data.date && data.template,
       proclamationScripture: data.proclamationScripture.sections.some((section) => section.content),
       firstHymn: !!data.firstHymn,
-      firstLinkingScripture: !!data.firstLinkingScripture,
+      firstLinkingScripture:
+        data.linkingScriptures && data.linkingScriptures.length > 0 && !!data.linkingScriptures[0].content,
       secondHymn: !!data.secondHymn,
-      secondLinkingScripture: !!data.secondLinkingScripture,
+      secondLinkingScripture:
+        data.linkingScriptures && data.linkingScriptures.length > 1 && !!data.linkingScriptures[1].content,
       thirdHymn: !!data.thirdHymn,
-      infoSharing: !!data.infoSharingTitle,
+      infoSharing: !!data.infoSharingTitle, // 现在默认为false
       responseHymn: !!data.responseHymn,
-      familyReport: !!data.familyReport,
+      familyReport: data.familyReport && data.familyReport.length > 0 && !!data.familyReport[0].content,
       sendingHymn: !!data.sendingHymn,
       final: true, // 最后一步总是可以访问的
     }
@@ -155,6 +170,13 @@ export default function Home() {
   useEffect(() => {
     updateCompletedSteps()
   }, [])
+
+  // 步骤切换时更新预览的幻灯片
+  useEffect(() => {
+    // 获取当前步骤对应的预览幻灯片索引
+    const currentStepPreviewIndex = steps[currentStep].previewSlideIndex
+    setPreviewSlide(currentStepPreviewIndex)
+  }, [currentStep])
 
   const validateCurrentStep = () => {
     const currentStepId = steps[currentStep].id
@@ -175,13 +197,15 @@ export default function Home() {
         if (!worshipData.firstHymn) errors.firstHymn = "请选择第一首诗歌"
         break
       case "firstLinkingScripture":
-        if (!worshipData.firstLinkingScripture) errors.firstLinkingScripture = "请选择第一段衔接经文"
+        if (!worshipData.linkingScriptures[0].content) errors.firstLinkingScripture = "请选择第一段衔接经文"
         break
       case "secondHymn":
         if (!worshipData.secondHymn) errors.secondHymn = "请选择第二首诗歌"
         break
       case "secondLinkingScripture":
-        if (!worshipData.secondLinkingScripture) errors.secondLinkingScripture = "请选择第二段衔接经文"
+        if (worshipData.linkingScriptures.length < 2 || !worshipData.linkingScriptures[1].content) {
+          errors.secondLinkingScripture = "请选择第二段衔接经文"
+        }
         break
       case "thirdHymn":
         if (!worshipData.thirdHymn) errors.thirdHymn = "请选择第三首诗歌"
@@ -193,7 +217,9 @@ export default function Home() {
         if (!worshipData.responseHymn) errors.responseHymn = "请选择回应诗歌"
         break
       case "familyReport":
-        if (!worshipData.familyReport) errors.familyReport = "请输入家事报告内容"
+        if (!worshipData.familyReport.some((item) => item.content)) {
+          errors.familyReport = "请输入至少一条家事报告内容"
+        }
         break
       case "sendingHymn":
         if (!worshipData.sendingHymn) errors.sendingHymn = "请选择差遣诗歌/经文"
@@ -246,11 +272,6 @@ export default function Home() {
     generatePPT(data)
   }
 
-  // 切换预览的显示/隐藏
-  const togglePreview = () => {
-    setShowPreview(!showPreview)
-  }
-
   // 渲染当前步骤的表单
   const renderCurrentStepForm = () => {
     const stepId = steps[currentStep].id
@@ -271,11 +292,11 @@ export default function Home() {
       case "firstHymn":
         return <FirstHymnForm {...props} />
       case "firstLinkingScripture":
-        return <FirstLinkingScriptureForm {...props} />
+        return <FirstLinkingScriptureForm {...props} linkingIndex={0} />
       case "secondHymn":
         return <SecondHymnForm {...props} />
       case "secondLinkingScripture":
-        return <SecondLinkingScriptureForm {...props} />
+        return <SecondLinkingScriptureForm {...props} linkingIndex={1} />
       case "thirdHymn":
         return <ThirdHymnForm {...props} />
       case "infoSharing":
@@ -300,14 +321,97 @@ export default function Home() {
     fixedContent: fixedContent,
   }
 
+  // 移动端布局
+  if (isMobile) {
+    return (
+      <main className="container mx-auto py-4 px-2">
+        <h1 className="text-2xl font-bold text-center mb-4">崇拜PPT生成器</h1>
+
+        <div className="flex flex-row">
+          {/* 左侧垂直步骤导航 */}
+          <div className="w-12 mr-2">
+            <StepNavigator
+              steps={steps}
+              currentStep={currentStep}
+              completedSteps={completedSteps}
+              onStepClick={goToStep}
+              orientation="vertical"
+            />
+          </div>
+
+          {/* 右侧内容区域 */}
+          <div className="flex-1 flex flex-col">
+            {/* 上方预览区域 */}
+            <div className="mb-4">
+              <Card className="w-full">
+                <CardHeader className="py-2 px-3">
+                  <CardTitle className="text-sm">实时预览</CardTitle>
+                </CardHeader>
+                <CardContent className="p-2 aspect-video">
+                  <PptPreview data={previewData} initialSlide={previewSlide} />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* 下方表单区域 */}
+            <div className="flex-1" ref={formRef}>
+              <Card>
+                <CardHeader className="py-2 px-3">
+                  <CardTitle className="text-sm">{steps[currentStep].title}</CardTitle>
+                  <CardDescription className="text-xs">
+                    步骤 {currentStep + 1} / {steps.length}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-3">
+                  {renderCurrentStepForm()}
+
+                  <div className="flex justify-between mt-4">
+                    <Button variant="outline" size="sm" onClick={goToPreviousStep} disabled={currentStep === 0}>
+                      <ChevronLeft className="mr-1 h-4 w-4" /> 上一步
+                    </Button>
+
+                    {currentStep < steps.length - 1 ? (
+                      <Button size="sm" onClick={goToNextStep}>
+                        下一步 <ChevronRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={handleGenerate}>
+                        生成PPT <Download className="ml-1 h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  // 桌面端布局
   return (
-    <main className="container mx-auto py-4 px-2 sm:py-8 sm:px-4">
-      <h1 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-8">崇拜PPT生成器</h1>
+    <main className="container mx-auto py-8 px-4">
+      <h1 className="text-3xl font-bold text-center mb-8">崇拜PPT生成器</h1>
 
       <StepNavigator steps={steps} currentStep={currentStep} completedSteps={completedSteps} onStepClick={goToStep} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
-        <div className="space-y-4 sm:space-y-6" ref={formRef}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* 左侧预览区域 */}
+        <div>
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>实时预览</CardTitle>
+              <CardDescription>您的崇拜演示文稿预览</CardDescription>
+            </CardHeader>
+            <CardContent className="aspect-video">
+              <PptPreview data={previewData} initialSlide={previewSlide} />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 右侧表单区域 */}
+        <div className="space-y-6" ref={formRef}>
           <Card className="min-h-[400px]">
             <CardHeader>
               <CardTitle>{steps[currentStep].title}</CardTitle>
@@ -318,49 +422,21 @@ export default function Home() {
             <CardContent>
               {renderCurrentStepForm()}
 
-              <div className="flex justify-between mt-6 sm:mt-8">
+              <div className="flex justify-between mt-8">
                 <Button variant="outline" onClick={goToPreviousStep} disabled={currentStep === 0}>
-                  <ChevronLeft className="mr-1 sm:mr-2 h-4 w-4" /> 上一步
+                  <ChevronLeft className="mr-2 h-4 w-4" /> 上一步
                 </Button>
 
                 {currentStep < steps.length - 1 ? (
                   <Button onClick={goToNextStep}>
-                    下一步 <ChevronRight className="ml-1 sm:ml-2 h-4 w-4" />
+                    下一步 <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
                   <Button onClick={handleGenerate}>
-                    生成PPT <Download className="ml-1 sm:ml-2 h-4 w-4" />
+                    生成PPT <Download className="ml-2 h-4 w-4" />
                   </Button>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* 移动端预览切换按钮 */}
-        <div className="lg:hidden mt-2 mb-0">
-          <Button variant="outline" onClick={togglePreview} className="w-full flex items-center justify-center">
-            {showPreview ? (
-              <>
-                <ChevronUp className="mr-2 h-4 w-4" /> 隐藏预览
-              </>
-            ) : (
-              <>
-                <ChevronDown className="mr-2 h-4 w-4" /> 显示预览
-              </>
-            )}
-          </Button>
-        </div>
-
-        {/* 预览区域 */}
-        <div className={showPreview ? "block" : "hidden lg:block"}>
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>实时预览</CardTitle>
-              <CardDescription>您的崇拜演示文稿预览</CardDescription>
-            </CardHeader>
-            <CardContent className="h-[400px] sm:h-[500px] md:h-[600px] overflow-auto">
-              <PptPreview data={previewData} />
             </CardContent>
           </Card>
         </div>
